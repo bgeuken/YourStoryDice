@@ -22,5 +22,5 @@
         <activity android:name=".SettingsActivity"></activity>
         <activity android:name=".NewDieActivity"></activity>
     </application>
-
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"></uses-permission>
 </manifest>

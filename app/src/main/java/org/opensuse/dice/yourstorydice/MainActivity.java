@@ -2,8 +2,13 @@ package org.opensuse.dice.yourstorydice;
 
 import android.content.Context;
 import android.content.Intent;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -23,6 +28,11 @@ import java.util.Random;
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
     int num_dice = 4;
+
+    private SensorManager mSensorManager;
+    private Sensor mSensor;
+    private final MySensor mListener = new MySensor();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +62,15 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        if (mSensor == null) {
+            // Use the accelerometer.
+            mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+            if (mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION) != null) {
+                mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+                mSensorManager.registerListener(mListener, mSensor, SensorManager.SENSOR_DELAY_UI);
+            }
+        }
 
         GridView gridview = (GridView) findViewById(R.id.gridview);
         gridview.setAdapter(new DiceAdapter(this));
@@ -119,7 +138,7 @@ public class MainActivity extends AppCompatActivity
      *
      * @return an array of integers which represents the images to be used as dice
      */
-    private int[] getDiceImages(){
+    private int[] getDiceImages() {
         Random random = new Random();
         Integer[] defaultDice = {
                 R.drawable.default1,
@@ -148,10 +167,10 @@ public class MainActivity extends AppCompatActivity
         };
 
         int[] fetched_images = new int[num_dice];
-        for(int position = 0; position < num_dice; position++) {
+        for (int position = 0; position < num_dice; position++) {
             int random_image = defaultDice[random.nextInt(defaultDice.length)];
-            for(int index = 0; index < position; index++) {
-                if(random_image == fetched_images[index]) {
+            for (int index = 0; index < position; index++) {
+                if (random_image == fetched_images[index]) {
                     random_image = defaultDice[random.nextInt(defaultDice.length)];
                     index = -1;
                 }
@@ -192,6 +211,49 @@ public class MainActivity extends AppCompatActivity
 
             imageView.setImageResource(dice_images[position]);
             return imageView;
+        }
+    }
+
+    public class MySensor implements SensorEventListener {
+        private long lastUpdate = 0L;
+        private float lastMotion = 0F;
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        }
+
+        private void dice() {
+            Log.d("dice", "test");
+
+            /*
+            GridView gridview = (GridView) findViewById(R.id.gridview);
+            int[] dice_images = getDiceImages();
+            for (int position = 0; position < num_dice; position++) {
+                ImageView imageView = (ImageView) gridview.getChildAt(position);
+                imageView.setImageResource(dice_images[position]);
+            }
+            */
+        }
+
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            float motion;
+            float currentMotion = (event.values[0] + event.values[1] + event.values[2]);
+            long currentTime = System.currentTimeMillis();
+
+            if ((currentTime - lastUpdate) > 2500) {
+                lastUpdate = currentTime;
+
+                motion = Math.abs(currentMotion - lastMotion);
+                Log.d("motion", Float.toString(motion));
+                if (motion > 1F) {
+                    dice();
+                    lastUpdate = currentTime;
+                }
+                lastMotion = currentMotion;
+
+               // Log.d("trigger", Float.toString(lastMotion));
+            }
         }
     }
 }
